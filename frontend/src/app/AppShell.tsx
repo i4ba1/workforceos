@@ -13,6 +13,7 @@ import {
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import PeopleIcon from '@mui/icons-material/People';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
+import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import EventNoteIcon from '@mui/icons-material/EventNote';
 import PaymentsIcon from '@mui/icons-material/Payments';
 import PolicyIcon from '@mui/icons-material/Policy';
@@ -21,6 +22,7 @@ const NAV_ITEMS = [
   { to: '/', label: 'Dashboard', icon: <DashboardIcon /> },
   { to: '/people', label: 'People', icon: <PeopleIcon /> },
   { to: '/schedule', label: 'Schedule', icon: <CalendarMonthIcon /> },
+  { to: '/time', label: 'Time', icon: <AccessTimeIcon /> },
   { to: '/attendance', label: 'Attendance', icon: <EventNoteIcon /> },
   { to: '/payroll', label: 'Payroll', icon: <PaymentsIcon /> },
   { to: '/policies', label: 'Policies', icon: <PolicyIcon /> },

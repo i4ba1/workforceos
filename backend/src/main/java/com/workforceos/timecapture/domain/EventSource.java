@@ -15,6 +15,7 @@ public record EventSource(String source, String sourceEventId) {
 
     public EventSource {
         Objects.requireNonNull(source, "source");
-        Objects.requireNonNull(sourceEventId, "sourceEventId");
+        // sourceEventId is null for self-service web clock events; external integrations
+        // must provide a stable external event id for deduplication.
     }
 }
