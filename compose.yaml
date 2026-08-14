@@ -1,0 +1,31 @@
+services:
+  postgres:
+    image: postgres:18
+    container_name: workforceos-postgres
+    environment:
+      POSTGRES_DB: workforceos
+      POSTGRES_USER: workforceos
+      POSTGRES_PASSWORD: workforceos
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U workforceos -d workforceos"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: workforceos-redis
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  postgres_data:
