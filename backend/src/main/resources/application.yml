@@ -25,6 +25,9 @@ spring:
   jackson:
     serialization:
       write-dates-as-timestamps: false
+  mvc:
+    problemdetails:
+      enabled: true
 
 server:
   port: ${SERVER_PORT:8080}

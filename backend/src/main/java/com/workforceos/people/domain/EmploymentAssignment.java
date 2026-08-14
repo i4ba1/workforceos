@@ -32,7 +32,7 @@ public class EmploymentAssignment {
         this.tenantId = Objects.requireNonNull(tenantId, "tenantId");
         this.orgUnitId = Objects.requireNonNull(orgUnitId, "orgUnitId");
         this.managerId = managerId;
-        this.policyId = Objects.requireNonNull(policyId, "policyId");
+        this.policyId = policyId;
         this.effectiveFrom = Objects.requireNonNull(effectiveFrom, "effectiveFrom");
         this.effectiveTo = effectiveTo;
         if (effectiveTo != null && !effectiveTo.isAfter(effectiveFrom)) {

@@ -24,3 +24,12 @@ export function formatMinutes(minutes: number): string {
   const mins = minutes % 60;
   return `${hours}h ${mins.toString().padStart(2, '0')}m`;
 }
+
+/**
+ * Converts an HTML datetime-local value to an ISO-8601 instant, treating the entered
+ * wall-clock as UTC. This is a Phase-1 demo simplification; time-zone-correct
+ * conversion lands with the attendance engine.
+ */
+export function datetimeLocalToInstant(local: string): string {
+  return new Date(`${local}:00Z`).toISOString();
+}

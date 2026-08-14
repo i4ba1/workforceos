@@ -25,12 +25,19 @@ public class Employee {
     private UserId linkedUserId;
 
     public Employee(EmployeeId id, TenantId tenantId, String employeeNo, String firstName, String lastName) {
+        this(id, tenantId, employeeNo, firstName, lastName, null, EmploymentStatus.ACTIVE, null);
+    }
+
+    public Employee(EmployeeId id, TenantId tenantId, String employeeNo, String firstName, String lastName,
+                    String email, EmploymentStatus status, UserId linkedUserId) {
         this.id = Objects.requireNonNull(id, "id");
         this.tenantId = Objects.requireNonNull(tenantId, "tenantId");
         this.employeeNo = Objects.requireNonNull(employeeNo, "employeeNo");
         this.firstName = Objects.requireNonNull(firstName, "firstName");
         this.lastName = Objects.requireNonNull(lastName, "lastName");
-        this.status = EmploymentStatus.ACTIVE;
+        this.email = email;
+        this.status = Objects.requireNonNull(status, "status");
+        this.linkedUserId = linkedUserId;
     }
 
     public void terminate() {
@@ -39,6 +46,15 @@ public class Employee {
 
     public void linkUser(UserId userId) {
         this.linkedUserId = Objects.requireNonNull(userId, "userId");
+    }
+
+    public void assignEmail(String email) {
+        this.email = email;
+    }
+
+    public void rename(String newFirstName, String newLastName) {
+        this.firstName = Objects.requireNonNull(newFirstName, "newFirstName");
+        this.lastName = Objects.requireNonNull(newLastName, "newLastName");
     }
 
     public EmployeeId id() {

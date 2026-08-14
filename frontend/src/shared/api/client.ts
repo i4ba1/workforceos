@@ -27,6 +27,12 @@ export class ApiError extends Error {
   }
 }
 
+/**
+ * Demo tenant used during local development. In production the tenant is derived from
+ * the authenticated OIDC claim, never from a client-controlled header.
+ */
+export const DEMO_TENANT_ID = '00000000-0000-0000-0000-000000000001';
+
 const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '/api/v1';
 
 export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
@@ -34,6 +40,7 @@ export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> 
     ...init,
     headers: {
       'Content-Type': 'application/json',
+      'X-Tenant-Id': DEMO_TENANT_ID,
       ...init?.headers,
     },
   });

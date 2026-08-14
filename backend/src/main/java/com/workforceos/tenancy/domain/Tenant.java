@@ -23,13 +23,18 @@ public class Tenant {
     private int retentionDays;
 
     public Tenant(TenantId id, String code, String name, ZoneId defaultZone, Locale locale) {
+        this(id, code, name, defaultZone, locale, TenantStatus.ACTIVE, 365);
+    }
+
+    public Tenant(TenantId id, String code, String name, ZoneId defaultZone, Locale locale,
+                  TenantStatus status, int retentionDays) {
         this.id = Objects.requireNonNull(id, "id");
         this.code = Objects.requireNonNull(code, "code");
         this.name = Objects.requireNonNull(name, "name");
         this.defaultZone = Objects.requireNonNull(defaultZone, "defaultZone");
         this.locale = Objects.requireNonNull(locale, "locale");
-        this.status = TenantStatus.ACTIVE;
-        this.retentionDays = 365;
+        this.status = Objects.requireNonNull(status, "status");
+        this.retentionDays = retentionDays;
     }
 
     public void suspend() {
