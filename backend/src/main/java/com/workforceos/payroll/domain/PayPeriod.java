@@ -12,7 +12,8 @@ import java.util.Objects;
  * A payroll period that is opened, validated, closed and optionally reopened.
  *
  * <p>Close blocks normal edits for the period; reopen requires elevated permission and a
- * mandatory reason. Closed-period data is never silently mutated.</p>
+ * mandatory reason. Closed-period data is never silently mutated. {@code version} counts
+ * the number of closes so exports align with a specific close.</p>
  */
 public class PayPeriod {
 
@@ -21,10 +22,16 @@ public class PayPeriod {
     private final LocalDate startDate;
     private final LocalDate endDate;
     private PayPeriodState state;
+    private long version;
     private UserId closedBy;
     private Instant closedAt;
 
     public PayPeriod(PayPeriodId id, TenantId tenantId, LocalDate startDate, LocalDate endDate) {
+        this(id, tenantId, startDate, endDate, PayPeriodState.OPEN, 0L, null, null);
+    }
+
+    public PayPeriod(PayPeriodId id, TenantId tenantId, LocalDate startDate, LocalDate endDate,
+                     PayPeriodState state, long version, UserId closedBy, Instant closedAt) {
         this.id = Objects.requireNonNull(id, "id");
         this.tenantId = Objects.requireNonNull(tenantId, "tenantId");
         this.startDate = Objects.requireNonNull(startDate, "startDate");
@@ -32,12 +39,15 @@ public class PayPeriod {
         if (endDate.isBefore(startDate)) {
             throw new IllegalArgumentException("endDate must not be before startDate");
         }
-        this.state = PayPeriodState.OPEN;
+        this.state = Objects.requireNonNull(state, "state");
+        this.version = version;
+        this.closedBy = closedBy;
+        this.closedAt = closedAt;
     }
 
     public void startValidation() {
-        if (state != PayPeriodState.OPEN) {
-            throw new IllegalStateException("Period is not open");
+        if (state != PayPeriodState.OPEN && state != PayPeriodState.REOPENED) {
+            throw new IllegalStateException("Period cannot be validated from state " + state);
         }
         this.state = PayPeriodState.VALIDATING;
     }
@@ -49,6 +59,7 @@ public class PayPeriod {
         this.state = PayPeriodState.CLOSED;
         this.closedBy = Objects.requireNonNull(by, "by");
         this.closedAt = Objects.requireNonNull(at, "at");
+        this.version++;
     }
 
     public void reopen(UserId by, Instant at) {
@@ -78,6 +89,10 @@ public class PayPeriod {
 
     public PayPeriodState state() {
         return state;
+    }
+
+    public long version() {
+        return version;
     }
 
     public UserId closedBy() {
