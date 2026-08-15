@@ -1,6 +1,9 @@
 package com.workforceos.attendance.adapter.outbound.persistence;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -21,5 +24,11 @@ interface AttendanceExceptionJpaRepository extends JpaRepository<AttendanceExcep
 
     List<AttendanceExceptionJpaEntity> findAllByTenantIdAndRecordId(UUID tenantId, UUID recordId);
 
+    List<AttendanceExceptionJpaEntity> findAllByTenantIdAndStateOrderByCreatedAtAsc(UUID tenantId, String state);
+
     void deleteAllByRecordId(UUID recordId);
+
+    @Modifying
+    @Query("update AttendanceExceptionJpaEntity e set e.state = :state where e.recordId = :recordId and e.state = 'OPEN'")
+    int updateStateByRecordId(@Param("state") String state, @Param("recordId") UUID recordId);
 }

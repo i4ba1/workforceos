@@ -11,6 +11,7 @@ import com.workforceos.attendance.domain.CalculationResult;
 import com.workforceos.attendance.domain.ClockEventReadModel;
 import com.workforceos.attendance.domain.EventStamp;
 import com.workforceos.attendance.domain.ExceptionFinding;
+import com.workforceos.attendance.domain.ExceptionState;
 import com.workforceos.attendance.domain.PlannedShift;
 import com.workforceos.attendance.domain.event.AttendanceRecalculated;
 import com.workforceos.attendance.domain.event.ExceptionOpened;
@@ -101,6 +102,16 @@ public class AttendanceService {
     @Transactional(readOnly = true)
     public List<AttendanceException> exceptions(TenantId tenantId, AttendanceRecordId id) {
         return store.findExceptions(tenantId, id);
+    }
+
+    @Transactional(readOnly = true)
+    public List<AttendanceException> openExceptions(TenantId tenantId) {
+        return store.findOpenExceptions(tenantId);
+    }
+
+    @Transactional
+    public void resolveExceptions(TenantId tenantId, AttendanceRecordId recordId, ExceptionState state) {
+        store.updateExceptionStates(tenantId, recordId, state);
     }
 
     private EventStamp toStamp(ClockEventReadModel event) {

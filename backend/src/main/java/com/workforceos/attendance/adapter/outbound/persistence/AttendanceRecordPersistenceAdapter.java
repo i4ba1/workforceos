@@ -76,6 +76,17 @@ public class AttendanceRecordPersistenceAdapter implements AttendanceRecordStore
     }
 
     @Override
+    public List<AttendanceException> findOpenExceptions(TenantId tenantId) {
+        return exceptionRepository.findAllByTenantIdAndStateOrderByCreatedAtAsc(tenantId.value(),
+                ExceptionState.OPEN.name()).stream().map(this::toDomain).toList();
+    }
+
+    @Override
+    public void updateExceptionStates(TenantId tenantId, AttendanceRecordId recordId, ExceptionState state) {
+        exceptionRepository.updateStateByRecordId(state.name(), recordId.value());
+    }
+
+    @Override
     public void replaceExceptions(TenantId tenantId, AttendanceRecordId recordId, List<ExceptionFinding> findings) {
         exceptionRepository.deleteAllByRecordId(recordId.value());
         for (ExceptionFinding finding : findings) {

@@ -2,6 +2,7 @@ package com.workforceos.attendance.adapter.inbound.web;
 
 import com.workforceos.attendance.domain.AttendanceException;
 import com.workforceos.attendance.domain.AttendanceRecord;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
 import java.time.LocalDate;
@@ -46,15 +47,23 @@ public final class AttendanceDtos {
         }
     }
 
-    public record ExceptionResponse(String type, String severity, String state, String detail) {
+    public record ExceptionResponse(UUID recordId, String type, String severity, String state, String detail, String createdAt) {
 
         public static ExceptionResponse from(AttendanceException exception) {
             return new ExceptionResponse(
+                    exception.recordId().value(),
                     exception.type().name(),
                     exception.severity().name(),
                     exception.state().name(),
-                    exception.detail());
+                    exception.detail(),
+                    exception.createdAt().toString());
         }
+    }
+
+    public record CorrectionRequest(@NotBlank String reason) {
+    }
+
+    public record CorrectionResponse(UUID caseId) {
     }
 
     public record AttendanceDetailResponse(AttendanceRecordResponse record, List<ExceptionResponse> exceptions) {

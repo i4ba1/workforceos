@@ -10,6 +10,7 @@ import com.workforceos.attendance.domain.AttendanceStatus;
 import com.workforceos.attendance.domain.ClockEventKind;
 import com.workforceos.attendance.domain.ClockEventReadModel;
 import com.workforceos.attendance.domain.ExceptionFinding;
+import com.workforceos.attendance.domain.ExceptionState;
 import com.workforceos.attendance.domain.PlannedShift;
 import com.workforceos.attendance.domain.SimpleOvertimePolicy;
 import com.workforceos.attendance.domain.StandardEventPairingPolicy;
@@ -90,6 +91,15 @@ class AttendanceServiceTest {
         @Override
         public List<AttendanceException> findExceptions(TenantId tenantId, AttendanceRecordId recordId) {
             return List.of();
+        }
+
+        @Override
+        public List<AttendanceException> findOpenExceptions(TenantId tenantId) {
+            return List.of();
+        }
+
+        @Override
+        public void updateExceptionStates(TenantId tenantId, AttendanceRecordId recordId, ExceptionState state) {
         }
 
         @Override

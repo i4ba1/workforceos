@@ -21,5 +21,9 @@ public interface AttendanceRecordStore {
 
     List<AttendanceException> findExceptions(TenantId tenantId, AttendanceRecordId recordId);
 
+    List<AttendanceException> findOpenExceptions(TenantId tenantId);
+
+    void updateExceptionStates(TenantId tenantId, AttendanceRecordId recordId, ExceptionState state);
+
     void replaceExceptions(TenantId tenantId, AttendanceRecordId recordId, List<ExceptionFinding> findings);
 }

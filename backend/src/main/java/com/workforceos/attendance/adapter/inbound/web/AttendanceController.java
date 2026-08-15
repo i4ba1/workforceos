@@ -2,9 +2,12 @@ package com.workforceos.attendance.adapter.inbound.web;
 
 import com.workforceos.attendance.adapter.inbound.web.AttendanceDtos.AttendanceDetailResponse;
 import com.workforceos.attendance.adapter.inbound.web.AttendanceDtos.AttendanceRecordResponse;
+import com.workforceos.attendance.adapter.inbound.web.AttendanceDtos.CorrectionRequest;
+import com.workforceos.attendance.adapter.inbound.web.AttendanceDtos.CorrectionResponse;
 import com.workforceos.attendance.adapter.inbound.web.AttendanceDtos.ExceptionResponse;
 import com.workforceos.attendance.adapter.inbound.web.AttendanceDtos.RecalculateRequest;
 import com.workforceos.attendance.application.AttendanceService;
+import com.workforceos.approval.application.ApprovalService;
 import com.workforceos.shared.context.TenantContextHolder;
 import com.workforceos.shared.id.AttendanceRecordId;
 import com.workforceos.shared.id.EmployeeId;
@@ -25,10 +28,14 @@ import java.util.UUID;
 @RequestMapping("/api/v1/attendance")
 public class AttendanceController {
 
-    private final AttendanceService attendanceService;
+    private static final String ATTENDANCE_RECORD_SUBJECT = "ATTENDANCE_RECORD";
 
-    public AttendanceController(AttendanceService attendanceService) {
+    private final AttendanceService attendanceService;
+    private final ApprovalService approvalService;
+
+    public AttendanceController(AttendanceService attendanceService, ApprovalService approvalService) {
         this.attendanceService = attendanceService;
+        this.approvalService = approvalService;
     }
 
     @GetMapping
@@ -54,5 +61,19 @@ public class AttendanceController {
                 new EmployeeId(request.employeeId()),
                 BusinessDate.of(request.businessDate()));
         return AttendanceRecordResponse.from(record);
+    }
+
+    @GetMapping("/exceptions")
+    public List<ExceptionResponse> exceptions() {
+        TenantId tenantId = TenantContextHolder.require().tenantId();
+        return attendanceService.openExceptions(tenantId).stream().map(ExceptionResponse::from).toList();
+    }
+
+    @PostMapping("/{id}/corrections")
+    public CorrectionResponse submitCorrection(@PathVariable UUID id, @Valid @RequestBody CorrectionRequest request) {
+        var context = TenantContextHolder.require();
+        var approvalCase = approvalService.open(context.tenantId(), ATTENDANCE_RECORD_SUBJECT, id,
+                context.userId(), request.reason());
+        return new CorrectionResponse(approvalCase.id().value());
     }
 }
