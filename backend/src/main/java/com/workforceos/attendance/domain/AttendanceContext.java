@@ -4,6 +4,8 @@ import com.workforceos.shared.id.EmployeeId;
 import com.workforceos.shared.time.BusinessDate;
 import com.workforceos.shared.time.Minutes;
 
+import java.time.Instant;
+
 /**
  * Calculated attendance facts that rules evaluate.
  *
@@ -13,9 +15,20 @@ import com.workforceos.shared.time.Minutes;
 public record AttendanceContext(
         EmployeeId employeeId,
         BusinessDate businessDate,
-        Minutes scheduledMinutes,
+        PlannedShift shift,
+        Instant firstArrival,
+        Instant lastDeparture,
         Minutes workedMinutes,
         Minutes breakMinutes,
+        Minutes scheduledMinutes,
+        boolean hasAnyEvent,
+        boolean missingClockIn,
+        boolean missingClockOut,
         boolean hasApprovedLeave,
-        boolean isHoliday) {
+        boolean isHoliday,
+        boolean isRestDay) {
+
+    public boolean isScheduled() {
+        return shift != null;
+    }
 }

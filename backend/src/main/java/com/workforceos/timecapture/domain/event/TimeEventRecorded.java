@@ -6,6 +6,7 @@ import com.workforceos.shared.id.TimeEventId;
 import com.workforceos.timecapture.domain.TimeEventType;
 
 import java.time.Instant;
+import java.time.ZoneId;
 
 /**
  * Published once a new raw time event has been durably committed.
@@ -17,5 +18,6 @@ public record TimeEventRecorded(
         EmployeeId employeeId,
         TimeEventId timeEventId,
         TimeEventType type,
-        Instant occurredAt) {
+        Instant occurredAt,
+        ZoneId zoneId) {
 }

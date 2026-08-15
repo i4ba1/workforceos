@@ -34,17 +34,26 @@ public class AttendanceRecord {
     public AttendanceRecord(AttendanceRecordId id, TenantId tenantId, EmployeeId employeeId,
                             BusinessDate businessDate, ScheduleEntryId scheduleEntryId,
                             PolicyVersionId policyVersionId) {
+        this(id, tenantId, employeeId, businessDate, scheduleEntryId, policyVersionId,
+                AttendanceStatus.NORMAL, Minutes.ZERO, Minutes.ZERO, Minutes.ZERO, 0L);
+    }
+
+    public AttendanceRecord(AttendanceRecordId id, TenantId tenantId, EmployeeId employeeId,
+                            BusinessDate businessDate, ScheduleEntryId scheduleEntryId,
+                            PolicyVersionId policyVersionId, AttendanceStatus status,
+                            Minutes regularMinutes, Minutes overtimeMinutes, Minutes breakMinutes,
+                            long version) {
         this.id = Objects.requireNonNull(id, "id");
         this.tenantId = Objects.requireNonNull(tenantId, "tenantId");
         this.employeeId = Objects.requireNonNull(employeeId, "employeeId");
         this.businessDate = Objects.requireNonNull(businessDate, "businessDate");
         this.scheduleEntryId = scheduleEntryId;
         this.policyVersionId = policyVersionId;
-        this.status = AttendanceStatus.NORMAL;
-        this.regularMinutes = Minutes.ZERO;
-        this.overtimeMinutes = Minutes.ZERO;
-        this.breakMinutes = Minutes.ZERO;
-        this.version = 0;
+        this.status = Objects.requireNonNull(status, "status");
+        this.regularMinutes = Objects.requireNonNull(regularMinutes, "regularMinutes");
+        this.overtimeMinutes = Objects.requireNonNull(overtimeMinutes, "overtimeMinutes");
+        this.breakMinutes = Objects.requireNonNull(breakMinutes, "breakMinutes");
+        this.version = version;
     }
 
     /** Recalculates derived totals, bumping the optimistic-lock version. */

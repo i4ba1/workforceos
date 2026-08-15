@@ -22,12 +22,18 @@ public class AttendanceException {
 
     public AttendanceException(AttendanceRecordId recordId, ExceptionType type,
                                ExceptionSeverity severity, String detail, Instant createdAt) {
+        this(recordId, type, severity, detail, createdAt, ExceptionState.OPEN);
+    }
+
+    public AttendanceException(AttendanceRecordId recordId, ExceptionType type,
+                               ExceptionSeverity severity, String detail, Instant createdAt,
+                               ExceptionState state) {
         this.recordId = Objects.requireNonNull(recordId, "recordId");
         this.type = Objects.requireNonNull(type, "type");
         this.severity = Objects.requireNonNull(severity, "severity");
         this.detail = Objects.requireNonNull(detail, "detail");
         this.createdAt = Objects.requireNonNull(createdAt, "createdAt");
-        this.state = ExceptionState.OPEN;
+        this.state = Objects.requireNonNull(state, "state");
     }
 
     public void beginReview() {

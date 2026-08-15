@@ -75,7 +75,7 @@ public class TimeCaptureService {
         }
 
         eventPublisher.publishEvent(new TimeEventRecorded(
-                tenantId, saved.employeeId(), saved.id(), saved.type(), saved.occurredAt()));
+                tenantId, saved.employeeId(), saved.id(), saved.type(), saved.occurredAt(), saved.zoneId()));
         return saved;
     }
 

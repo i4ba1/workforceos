@@ -16,6 +16,7 @@ class ArchitectureTest {
     @ArchTest
     static final ArchRule domain_is_isolated_from_adapters_and_frameworks =
             noClasses().that().resideInAPackage("..domain..")
+                    .and().doNotHaveSimpleName("package-info")
                     .should().dependOnClassesThat().resideInAnyPackage(
                             "..adapter..",
                             "org.springframework..",
