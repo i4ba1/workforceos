@@ -84,13 +84,31 @@ cd frontend && npm test                      # vitest
 
 ## Roadmap
 
-| Phase | Scope |
-|-------|-------|
-| 0 | Foundation (this scaffold): modules, domain model, build, CI |
-| 1 | People & Schedule |
-| 2 | Time Capture (idempotent raw events) |
-| 3 | Attendance Engine (calculation, policy strategies, DST/cross-midnight) |
-| 4 | Approval (corrections, manager queue, optimistic locking, audit) |
-| 5 | Payroll (period close/reopen, deterministic CSV export) |
-| 6 | Production Quality (observability, load tests, security gates, synthetic scale) |
-| 7 | Optional advanced (Kafka/outbox, external HRIS/terminal adapters, read replica) |
+| Phase | Scope | Status |
+|-------|-------|--------|
+| 0 | Foundation: modules, domain model, build, CI | done |
+| 1 | People & Schedule | done |
+| 2 | Time Capture (idempotent raw events) | done |
+| 3 | Attendance Engine (calculation, policy strategies, DST/cross-midnight) | done |
+| 4 | Approval (corrections, manager queue, optimistic locking, audit) | done |
+| 5 | Payroll (period close/reopen, deterministic CSV export) | done |
+| 6 | Production Quality (observability, security gates, seed data, UX) | done |
+| 7 | Optional advanced (Kafka/outbox, external HRIS/terminal adapters, read replica) | optional |
+
+## Observability & operations
+
+- Structured logs with `correlationId` / `tenantId` / `traceId` (logback MDC via request filters).
+- `X-Correlation-Id` accepted/generated and echoed on every response and Problem Details error body.
+- Micrometer metrics on `/actuator/prometheus`; health probes `/actuator/health`.
+- OpenTelemetry tracing (micrometer-tracing-bridge-otel) → OTLP endpoint (`OTEL_EXPORTER_OTLP_ENDPOINT`).
+
+## Security
+
+- SpotBugs (threshold High) runs in `mvnw verify`; OWASP dependency-check, gitleaks secret scan,
+  and Trivy container scan run in CI (see `.github/workflows/ci.yml`).
+- See `docs/security/threat-model.md` and `docs/security/security-checklist.md`.
+- Flyway seeds a synthetic demo tenant + employees + schedules + events (`V2`, `V7`).
+
+## Load testing
+
+`k6` script and guidance in `docs/performance/load-test.md` (`loadtest/attendance-load.js`).

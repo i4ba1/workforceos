@@ -15,6 +15,7 @@ import PeopleIcon from '@mui/icons-material/People';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import EventNoteIcon from '@mui/icons-material/EventNote';
+import FactCheckIcon from '@mui/icons-material/FactCheck';
 import PaymentsIcon from '@mui/icons-material/Payments';
 import PolicyIcon from '@mui/icons-material/Policy';
 
@@ -24,6 +25,7 @@ const NAV_ITEMS = [
   { to: '/schedule', label: 'Schedule', icon: <CalendarMonthIcon /> },
   { to: '/time', label: 'Time', icon: <AccessTimeIcon /> },
   { to: '/attendance', label: 'Attendance', icon: <EventNoteIcon /> },
+  { to: '/approvals', label: 'Approvals', icon: <FactCheckIcon /> },
   { to: '/payroll', label: 'Payroll', icon: <PaymentsIcon /> },
   { to: '/policies', label: 'Policies', icon: <PolicyIcon /> },
 ];

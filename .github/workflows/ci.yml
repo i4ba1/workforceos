@@ -16,7 +16,7 @@ jobs:
           distribution: temurin
           java-version: "25"
           cache: maven
-      - name: Verify (compile + unit + Modulith/ArchUnit + Testcontainers)
+      - name: Verify (compile + unit + Modulith/ArchUnit + SpotBugs)
         run: ./mvnw -f backend/pom.xml -B verify
 
   frontend:
@@ -36,3 +36,31 @@ jobs:
       - run: npm run typecheck
       - run: npm test
       - run: npm run build
+
+  security:
+    name: Security scans
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Secret scanning (gitleaks)
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "25"
+          cache: maven
+      - name: Dependency vulnerability check (OWASP)
+        run: ./mvnw -f backend/pom.xml -B org.owasp:dependency-check-maven:check -DskipTests
+      - name: Build container image
+        run: docker build -t workforceos:scan backend
+      - name: Container image scan (Trivy)
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: workforceos:scan
+          severity: HIGH,CRITICAL
+          exit-code: "1"
+          ignore-unfixed: true

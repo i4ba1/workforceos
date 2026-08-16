@@ -8,6 +8,9 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.slf4j.MDC;
+import org.springframework.core.Ordered;
+import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -23,6 +26,7 @@ import java.util.Set;
  * the tenant from the authenticated claim, never from a client-supplied header.</p>
  */
 @Component
+@Order(Ordered.HIGHEST_PRECEDENCE + 1)
 public class TenantContextFilter extends OncePerRequestFilter {
 
     private static final TenantId DEFAULT_TENANT = TenantId.of("00000000-0000-0000-0000-000000000001");
@@ -31,10 +35,13 @@ public class TenantContextFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
-        TenantContextHolder.set(new TenantContext(resolveTenant(request), resolveUser(request), Set.of()));
+        TenantId tenantId = resolveTenant(request);
+        TenantContextHolder.set(new TenantContext(tenantId, resolveUser(request), Set.of()));
+        MDC.put("tenantId", tenantId.value().toString());
         try {
             filterChain.doFilter(request, response);
         } finally {
+            MDC.remove("tenantId");
             TenantContextHolder.clear();
         }
     }
