@@ -7,7 +7,7 @@ import com.workforceos.shared.id.TenantId;
 import java.util.List;
 import java.util.Optional;
 
-/** Persistence port for pay periods and their export history. */
+/** Persistence port for pay periods and their exports. */
 public interface PayrollStore {
 
     Optional<PayPeriod> findPeriod(TenantId tenantId, PayPeriodId id);
@@ -18,7 +18,7 @@ public interface PayrollStore {
 
     Optional<PayrollExport> findLatestExport(TenantId tenantId, PayPeriodId periodId);
 
-    PayrollExport saveExport(PayrollExport export);
-
     List<PayrollExport> findExports(TenantId tenantId, PayPeriodId periodId);
+
+    PayrollExport saveExport(PayrollExport export);
 }

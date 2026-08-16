@@ -10,12 +10,12 @@ interface PayPeriodJpaRepository extends JpaRepository<PayPeriodJpaEntity, UUID>
 
     Optional<PayPeriodJpaEntity> findByTenantIdAndId(UUID tenantId, UUID id);
 
-    List<PayPeriodJpaEntity> findAllByTenantIdOrderByStartDateDesc(UUID tenantId);
+    List<PayPeriodJpaEntity> findAllByTenantIdOrderByStartDateAsc(UUID tenantId);
 }
 
 interface PayrollExportJpaRepository extends JpaRepository<PayrollExportJpaEntity, UUID> {
 
     Optional<PayrollExportJpaEntity> findFirstByTenantIdAndPeriodIdOrderByVersionDesc(UUID tenantId, UUID periodId);
 
-    List<PayrollExportJpaEntity> findAllByTenantIdAndPeriodId(UUID tenantId, UUID periodId);
+    List<PayrollExportJpaEntity> findAllByTenantIdAndPeriodIdOrderByVersionAsc(UUID tenantId, UUID periodId);
 }

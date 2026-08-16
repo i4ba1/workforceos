@@ -33,7 +33,7 @@ public class PayrollPersistenceAdapter implements PayrollStore {
 
     @Override
     public List<PayPeriod> findPeriods(TenantId tenantId) {
-        return periodRepository.findAllByTenantIdOrderByStartDateDesc(tenantId.value()).stream()
+        return periodRepository.findAllByTenantIdOrderByStartDateAsc(tenantId.value()).stream()
                 .map(this::toDomain).toList();
     }
 
@@ -58,6 +58,12 @@ public class PayrollPersistenceAdapter implements PayrollStore {
     }
 
     @Override
+    public List<PayrollExport> findExports(TenantId tenantId, PayPeriodId periodId) {
+        return exportRepository.findAllByTenantIdAndPeriodIdOrderByVersionAsc(tenantId.value(), periodId.value())
+                .stream().map(this::toDomain).toList();
+    }
+
+    @Override
     public PayrollExport saveExport(PayrollExport export) {
         PayrollExportJpaEntity entity = new PayrollExportJpaEntity(
                 export.id().value(),
@@ -69,12 +75,6 @@ public class PayrollPersistenceAdapter implements PayrollStore {
                 export.generatedBy().value(),
                 export.generatedAt());
         return toDomain(exportRepository.save(entity));
-    }
-
-    @Override
-    public List<PayrollExport> findExports(TenantId tenantId, PayPeriodId periodId) {
-        return exportRepository.findAllByTenantIdAndPeriodId(tenantId.value(), periodId.value()).stream()
-                .map(this::toDomain).toList();
     }
 
     private PayPeriod toDomain(PayPeriodJpaEntity entity) {

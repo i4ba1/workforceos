@@ -2,12 +2,12 @@ package com.workforceos.payroll.application;
 
 import com.workforceos.audit.domain.AuditEvent;
 import com.workforceos.audit.domain.AuditWriter;
-import com.workforceos.payroll.adapter.outbound.export.CsvPayrollExporter;
+import com.workforceos.payroll.domain.CsvPayrollExporter;
 import com.workforceos.payroll.domain.PayPeriod;
 import com.workforceos.payroll.domain.PayPeriodState;
+import com.workforceos.payroll.domain.PayrollAttendanceLine;
 import com.workforceos.payroll.domain.PayrollDataSource;
 import com.workforceos.payroll.domain.PayrollExport;
-import com.workforceos.payroll.domain.PayrollProjection;
 import com.workforceos.payroll.domain.PayrollStore;
 import com.workforceos.shared.error.ConflictException;
 import com.workforceos.shared.id.EmployeeId;
@@ -17,10 +17,8 @@ import com.workforceos.shared.id.UserId;
 import com.workforceos.shared.time.Minutes;
 import org.junit.jupiter.api.Test;
 
-import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -31,7 +29,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class PayrollServiceTest {
 
-    static class FakeStore implements PayrollStore {
+    static class FakePayrollStore implements PayrollStore {
         final Map<PayPeriodId, PayPeriod> periods = new LinkedHashMap<>();
         final List<PayrollExport> exports = new ArrayList<>();
 
@@ -54,7 +52,12 @@ class PayrollServiceTest {
         @Override
         public Optional<PayrollExport> findLatestExport(TenantId tenantId, PayPeriodId periodId) {
             return exports.stream().filter(e -> e.periodId().equals(periodId))
-                    .max(Comparator.comparingInt(PayrollExport::version));
+                    .max(java.util.Comparator.comparingInt(PayrollExport::version));
+        }
+
+        @Override
+        public List<PayrollExport> findExports(TenantId tenantId, PayPeriodId periodId) {
+            return exports.stream().filter(e -> e.periodId().equals(periodId)).toList();
         }
 
         @Override
@@ -62,25 +65,14 @@ class PayrollServiceTest {
             exports.add(export);
             return export;
         }
-
-        @Override
-        public List<PayrollExport> findExports(TenantId tenantId, PayPeriodId periodId) {
-            return exports.stream().filter(e -> e.periodId().equals(periodId)).toList();
-        }
     }
 
     static class FakeDataSource implements PayrollDataSource {
-        long openExceptions = 0;
-        List<PayrollProjection.Line> totals = List.of();
+        List<PayrollAttendanceLine> lines = List.of();
 
         @Override
-        public long countOpenExceptions(TenantId tenantId, LocalDate from, LocalDate to) {
-            return openExceptions;
-        }
-
-        @Override
-        public List<PayrollProjection.Line> findTotals(TenantId tenantId, LocalDate from, LocalDate to) {
-            return totals;
+        public List<PayrollAttendanceLine> findAttendance(TenantId tenantId, LocalDate from, LocalDate to) {
+            return lines;
         }
     }
 
@@ -94,78 +86,87 @@ class PayrollServiceTest {
     }
 
     private static final TenantId TENANT = TenantId.newId();
-    private static final UserId MANAGER = UserId.newId();
-    private static final EmployeeId EMPLOYEE = EmployeeId.newId();
+    private static final UserId PAYROLL_ADMIN = UserId.newId();
+    private static final LocalDate START = LocalDate.of(2026, 8, 1);
+    private static final LocalDate END = LocalDate.of(2026, 8, 31);
 
-    private final FakeStore store = new FakeStore();
+    private final FakePayrollStore store = new FakePayrollStore();
     private final FakeDataSource dataSource = new FakeDataSource();
-    private final RecordingAuditWriter auditWriter = new RecordingAuditWriter();
+    private final RecordingAuditWriter audit = new RecordingAuditWriter();
     private final List<Object> published = new ArrayList<>();
-    private final PayrollService service = new PayrollService(store, dataSource, new CsvPayrollExporter(), auditWriter, published::add);
+    private final PayrollService service = new PayrollService(store, dataSource, new CsvPayrollExporter(), audit, published::add);
 
-    private PayPeriod open() {
-        return service.open(TENANT, LocalDate.of(2026, 8, 1), LocalDate.of(2026, 8, 14));
+    private PayPeriod openPeriod() {
+        return service.open(TENANT, START, END);
     }
 
     @Test
-    void close_withUnresolvedExceptions_throwsConflict() {
-        PayPeriod period = open();
-        dataSource.openExceptions = 3;
+    void open_createsOpenPeriod() {
+        PayPeriod period = openPeriod();
+        assertThat(period.state()).isEqualTo(PayPeriodState.OPEN);
+        assertThat(period.version()).isZero();
+    }
 
-        assertThatThrownBy(() -> service.close(TENANT, period.id(), MANAGER, Instant.now()))
+    @Test
+    void close_withUnresolvedRecords_throwsConflict() {
+        PayPeriod period = openPeriod();
+        dataSource.lines = List.of(
+                new PayrollAttendanceLine(EmployeeId.newId(), Minutes.of(480), Minutes.ZERO, true));
+
+        assertThatThrownBy(() -> service.close(TENANT, period.id(), PAYROLL_ADMIN))
                 .isInstanceOf(ConflictException.class)
-                .hasMessageContaining("exception");
-        assertThat(period.state()).isEqualTo(PayPeriodState.VALIDATING);
+                .hasMessageContaining("unresolved");
+        assertThat(store.periods.get(period.id()).state()).isEqualTo(PayPeriodState.OPEN);
     }
 
     @Test
-    void close_withoutExceptions_closesAndPublishes() {
-        PayPeriod period = open();
-        dataSource.openExceptions = 0;
+    void close_withoutUnresolvedRecords_closesAndBumpsVersion() {
+        PayPeriod period = openPeriod();
+        dataSource.lines = List.of(
+                new PayrollAttendanceLine(EmployeeId.newId(), Minutes.of(480), Minutes.ZERO, false));
 
-        PayPeriod closed = service.close(TENANT, period.id(), MANAGER, Instant.now());
+        PayPeriod closed = service.close(TENANT, period.id(), PAYROLL_ADMIN);
 
         assertThat(closed.state()).isEqualTo(PayPeriodState.CLOSED);
         assertThat(closed.version()).isEqualTo(1);
-        assertThat(published).hasSize(1);
+        assertThat(closed.closedBy()).isEqualTo(PAYROLL_ADMIN);
+        assertThat(audit.events).isNotEmpty();
     }
 
     @Test
-    void export_isDeterministicAndIdempotentForSameClose() {
-        PayPeriod period = open();
-        service.close(TENANT, period.id(), MANAGER, Instant.now());
-        dataSource.totals = List.of(new PayrollProjection.Line(EMPLOYEE, Minutes.of(480), Minutes.of(60), Minutes.ZERO));
+    void export_beforeClose_throwsConflict() {
+        PayPeriod period = openPeriod();
 
-        PayrollExportResult first = service.export(TENANT, period.id(), MANAGER);
-        PayrollExportResult second = service.export(TENANT, period.id(), MANAGER);
-
-        assertThat(first.export().checksum()).isEqualTo(second.export().checksum());
-        assertThat(first.content()).isEqualTo(second.content());
-        assertThat(first.export().id()).isEqualTo(second.export().id()); // idempotent re-export
-    }
-
-    @Test
-    void reopen_thenClose_bumpsVersionAndCreatesNewExport() {
-        PayPeriod period = open();
-        service.close(TENANT, period.id(), MANAGER, Instant.now());
-        dataSource.totals = List.of(new PayrollProjection.Line(EMPLOYEE, Minutes.of(480), Minutes.of(0), Minutes.ZERO));
-        PayrollExportResult first = service.export(TENANT, period.id(), MANAGER);
-
-        service.reopen(TENANT, period.id(), MANAGER, Instant.now(), "Fix totals");
-        service.close(TENANT, period.id(), MANAGER, Instant.now());
-        PayrollExportResult second = service.export(TENANT, period.id(), MANAGER);
-
-        assertThat(period.version()).isEqualTo(2);
-        assertThat(second.export().version()).isEqualTo(2);
-        assertThat(second.export().id()).isNotEqualTo(first.export().id());
-    }
-
-    @Test
-    void export_whenNotClosed_throwsConflict() {
-        PayPeriod period = open();
-
-        assertThatThrownBy(() -> service.export(TENANT, period.id(), MANAGER))
+        assertThatThrownBy(() -> service.export(TENANT, period.id(), PAYROLL_ADMIN))
                 .isInstanceOf(ConflictException.class)
                 .hasMessageContaining("closed");
+    }
+
+    @Test
+    void export_afterClose_isDeterministicAndVersioned() {
+        PayPeriod period = openPeriod();
+        dataSource.lines = List.of(
+                new PayrollAttendanceLine(EmployeeId.newId(), Minutes.of(480), Minutes.of(120), false));
+        service.close(TENANT, period.id(), PAYROLL_ADMIN);
+
+        PayrollExport first = service.export(TENANT, period.id(), PAYROLL_ADMIN);
+        PayrollExport second = service.export(TENANT, period.id(), PAYROLL_ADMIN);
+
+        assertThat(first.version()).isEqualTo(1);
+        assertThat(second.version()).isEqualTo(2);
+        assertThat(first.checksum()).isEqualTo(second.checksum());
+        assertThat(store.exports).hasSize(2);
+    }
+
+    @Test
+    void reopen_afterClose_reopensPeriod() {
+        PayPeriod period = openPeriod();
+        dataSource.lines = List.of();
+        service.close(TENANT, period.id(), PAYROLL_ADMIN);
+
+        PayPeriod reopened = service.reopen(TENANT, period.id(), PAYROLL_ADMIN, "Payroll correction");
+
+        assertThat(reopened.state()).isEqualTo(PayPeriodState.REOPENED);
+        assertThat(audit.events.stream().anyMatch(e -> e.action().equals("payroll.period_reopened"))).isTrue();
     }
 }

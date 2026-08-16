@@ -1,11 +1,10 @@
 package com.workforceos.payroll.adapter.inbound.web;
 
-import com.workforceos.payroll.adapter.inbound.web.PayrollDtos.OpenPeriodRequest;
+import com.workforceos.payroll.adapter.inbound.web.PayrollDtos.ExportResponse;
+import com.workforceos.payroll.adapter.inbound.web.PayrollDtos.OpenPayPeriodRequest;
 import com.workforceos.payroll.adapter.inbound.web.PayrollDtos.PayPeriodResponse;
-import com.workforceos.payroll.adapter.inbound.web.PayrollDtos.PayrollExportContentResponse;
-import com.workforceos.payroll.adapter.inbound.web.PayrollDtos.PayrollExportResponse;
+import com.workforceos.payroll.adapter.inbound.web.PayrollDtos.ReadinessResponse;
 import com.workforceos.payroll.adapter.inbound.web.PayrollDtos.ReopenRequest;
-import com.workforceos.payroll.application.PayrollExportResult;
 import com.workforceos.payroll.application.PayrollService;
 import com.workforceos.shared.context.TenantContextHolder;
 import com.workforceos.shared.id.PayPeriodId;
@@ -18,8 +17,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.nio.charset.StandardCharsets;
-import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
@@ -40,50 +37,39 @@ public class PayrollController {
     }
 
     @PostMapping
-    public PayPeriodResponse open(@Valid @RequestBody OpenPeriodRequest request) {
+    public PayPeriodResponse open(@Valid @RequestBody OpenPayPeriodRequest request) {
         TenantId tenantId = TenantContextHolder.require().tenantId();
         return PayPeriodResponse.from(payrollService.open(tenantId, request.startDate(), request.endDate()));
     }
 
-    @GetMapping("/{id}")
-    public PayPeriodResponse get(@PathVariable UUID id) {
+    @GetMapping("/{id}/readiness")
+    public ReadinessResponse readiness(@PathVariable UUID id) {
         TenantId tenantId = TenantContextHolder.require().tenantId();
-        return PayPeriodResponse.from(payrollService.get(tenantId, new PayPeriodId(id)));
-    }
-
-    @PostMapping("/{id}/validate")
-    public PayPeriodResponse validate(@PathVariable UUID id) {
-        TenantId tenantId = TenantContextHolder.require().tenantId();
-        return PayPeriodResponse.from(payrollService.validate(tenantId, new PayPeriodId(id)));
+        return ReadinessResponse.from(payrollService.readiness(tenantId, new PayPeriodId(id)));
     }
 
     @PostMapping("/{id}/close")
     public PayPeriodResponse close(@PathVariable UUID id) {
         var context = TenantContextHolder.require();
-        return PayPeriodResponse.from(payrollService.close(context.tenantId(), new PayPeriodId(id),
-                context.userId(), Instant.now()));
+        return PayPeriodResponse.from(payrollService.close(context.tenantId(), new PayPeriodId(id), context.userId()));
     }
 
     @PostMapping("/{id}/reopen")
     public PayPeriodResponse reopen(@PathVariable UUID id, @Valid @RequestBody ReopenRequest request) {
         var context = TenantContextHolder.require();
-        return PayPeriodResponse.from(payrollService.reopen(context.tenantId(), new PayPeriodId(id),
-                context.userId(), Instant.now(), request.reason()));
+        return PayPeriodResponse.from(
+                payrollService.reopen(context.tenantId(), new PayPeriodId(id), context.userId(), request.reason()));
     }
 
     @PostMapping("/{id}/exports")
-    public PayrollExportContentResponse export(@PathVariable UUID id) {
+    public ExportResponse export(@PathVariable UUID id) {
         var context = TenantContextHolder.require();
-        PayrollExportResult result = payrollService.export(context.tenantId(), new PayPeriodId(id), context.userId());
-        return new PayrollExportContentResponse(
-                PayrollExportResponse.from(result.export()),
-                new String(result.content(), StandardCharsets.UTF_8));
+        return ExportResponse.from(payrollService.export(context.tenantId(), new PayPeriodId(id), context.userId()));
     }
 
     @GetMapping("/{id}/exports")
-    public List<PayrollExportResponse> exports(@PathVariable UUID id) {
+    public List<ExportResponse> exports(@PathVariable UUID id) {
         TenantId tenantId = TenantContextHolder.require().tenantId();
-        return payrollService.exports(tenantId, new PayPeriodId(id)).stream()
-                .map(PayrollExportResponse::from).toList();
+        return payrollService.exports(tenantId, new PayPeriodId(id)).stream().map(ExportResponse::from).toList();
     }
 }

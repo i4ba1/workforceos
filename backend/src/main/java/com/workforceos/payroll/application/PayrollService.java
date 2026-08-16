@@ -4,10 +4,12 @@ import com.workforceos.audit.domain.AuditEvent;
 import com.workforceos.audit.domain.AuditWriter;
 import com.workforceos.payroll.domain.PayPeriod;
 import com.workforceos.payroll.domain.PayPeriodState;
+import com.workforceos.payroll.domain.PayrollAttendanceLine;
 import com.workforceos.payroll.domain.PayrollDataSource;
-import com.workforceos.payroll.domain.PayrollExport;
 import com.workforceos.payroll.domain.PayrollExporter;
+import com.workforceos.payroll.domain.PayrollExport;
 import com.workforceos.payroll.domain.PayrollProjection;
+import com.workforceos.payroll.domain.PayrollReadiness;
 import com.workforceos.payroll.domain.PayrollStore;
 import com.workforceos.payroll.domain.event.PayPeriodClosed;
 import com.workforceos.payroll.domain.event.PayrollExportGenerated;
@@ -18,6 +20,7 @@ import com.workforceos.shared.id.PayPeriodId;
 import com.workforceos.shared.id.PayrollExportId;
 import com.workforceos.shared.id.TenantId;
 import com.workforceos.shared.id.UserId;
+import com.workforceos.shared.time.Minutes;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -28,11 +31,11 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.HexFormat;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
+
 /**
- * Payroll period lifecycle: open, validate, close (blocked by unresolved exceptions),
- * reopen with reason, and deterministic, versioned, checksummed exports.
+ * Payroll period lifecycle: open, readiness, close/reopen with audit, and deterministic
+ * CSV export with checksum/version.
  */
 @Service
 public class PayrollService {
@@ -68,69 +71,81 @@ public class PayrollService {
                 .orElseThrow(() -> new NotFoundException("pay_period.not_found", "Pay period not found: " + id));
     }
 
-    @Transactional
-    public PayPeriod validate(TenantId tenantId, PayPeriodId id) {
+    @Transactional(readOnly = true)
+    public PayrollReadiness readiness(TenantId tenantId, PayPeriodId id) {
         PayPeriod period = get(tenantId, id);
-        period.startValidation();
-        return store.savePeriod(period);
+        return summarize(dataSource.findAttendance(tenantId, period.startDate(), period.endDate()));
     }
 
     @Transactional
-    public PayPeriod close(TenantId tenantId, PayPeriodId id, UserId by, Instant at) {
+    public PayPeriod close(TenantId tenantId, PayPeriodId id, UserId by) {
         PayPeriod period = get(tenantId, id);
-        if (period.state() == PayPeriodState.CLOSED) {
-            throw new ConflictException("payroll.already_closed", "Pay period is already closed");
+        List<PayrollAttendanceLine> lines = dataSource.findAttendance(tenantId, period.startDate(), period.endDate());
+        long unresolved = lines.stream().filter(PayrollAttendanceLine::hasOpenException).count();
+        if (unresolved > 0) {
+            throw new ConflictException("payroll.unresolved",
+                    "Cannot close period: " + unresolved + " unresolved record(s)");
         }
-        if (period.state() == PayPeriodState.OPEN || period.state() == PayPeriodState.REOPENED) {
-            period.startValidation();
-        }
-        long open = dataSource.countOpenExceptions(tenantId, period.startDate(), period.endDate());
-        if (open > 0) {
-            throw new ConflictException("payroll.unresolved_exceptions",
-                    open + " open exception(s) must be resolved before closing the period");
-        }
-        period.close(by, at);
+        period.startValidation();
+        period.close(by, Instant.now());
         PayPeriod saved = store.savePeriod(period);
         auditWriter.append(audit(tenantId, by, "payroll.period_closed", "pay_period", id.value(), null, null));
-        eventPublisher.publishEvent(new PayPeriodClosed(tenantId, saved.id()));
+        eventPublisher.publishEvent(new PayPeriodClosed(tenantId, id));
         return saved;
     }
 
     @Transactional
-    public PayPeriod reopen(TenantId tenantId, PayPeriodId id, UserId by, Instant at, String reason) {
+    public PayPeriod reopen(TenantId tenantId, PayPeriodId id, UserId by, String reason) {
         PayPeriod period = get(tenantId, id);
-        period.reopen(by, at);
+        period.reopen(by, Instant.now());
         PayPeriod saved = store.savePeriod(period);
         auditWriter.append(audit(tenantId, by, "payroll.period_reopened", "pay_period", id.value(), null, reason));
         return saved;
     }
 
     @Transactional
-    public PayrollExportResult export(TenantId tenantId, PayPeriodId id, UserId by) {
+    public PayrollExport export(TenantId tenantId, PayPeriodId id, UserId by) {
         PayPeriod period = get(tenantId, id);
         if (period.state() != PayPeriodState.CLOSED) {
-            throw new ConflictException("payroll.not_closed", "Pay period must be closed before export");
+            throw new ConflictException("payroll.not_closed", "Period must be closed before export");
         }
-        List<PayrollProjection.Line> lines = dataSource.findTotals(tenantId, period.startDate(), period.endDate());
-        byte[] content = exporter.export(new PayrollProjection(id, lines));
-
-        Optional<PayrollExport> latest = store.findLatestExport(tenantId, id);
-        if (latest.isPresent() && latest.get().version() == (int) period.version()) {
-            return new PayrollExportResult(latest.get(), content);
-        }
-
-        PayrollExport payrollExport = new PayrollExport(
-                PayrollExportId.newId(), tenantId, id, (int) period.version(), sha256(content),
+        List<PayrollAttendanceLine> lines = dataSource.findAttendance(tenantId, period.startDate(), period.endDate());
+        PayrollProjection projection = toProjection(id, lines);
+        byte[] bytes = exporter.export(projection);
+        String checksum = sha256(bytes);
+        int version = store.findLatestExport(tenantId, id).map(e -> e.version() + 1).orElse(1);
+        PayrollExport export = new PayrollExport(PayrollExportId.newId(), tenantId, id, version, checksum,
                 exporter.format(), by, Instant.now());
-        PayrollExport saved = store.saveExport(payrollExport);
+        PayrollExport saved = store.saveExport(export);
         auditWriter.append(audit(tenantId, by, "payroll.export_generated", "payroll_export", saved.id().value(), null, null));
         eventPublisher.publishEvent(new PayrollExportGenerated(tenantId, saved.id()));
-        return new PayrollExportResult(saved, content);
+        return saved;
     }
 
     @Transactional(readOnly = true)
     public List<PayrollExport> exports(TenantId tenantId, PayPeriodId id) {
         return store.findExports(tenantId, id);
+    }
+
+    private PayrollReadiness summarize(List<PayrollAttendanceLine> lines) {
+        Minutes regular = Minutes.ZERO;
+        Minutes overtime = Minutes.ZERO;
+        int unresolved = 0;
+        for (PayrollAttendanceLine line : lines) {
+            regular = regular.plus(line.regularMinutes());
+            overtime = overtime.plus(line.overtimeMinutes());
+            if (line.hasOpenException()) {
+                unresolved++;
+            }
+        }
+        return new PayrollReadiness(lines, lines.size(), unresolved, regular, overtime);
+    }
+
+    private PayrollProjection toProjection(PayPeriodId id, List<PayrollAttendanceLine> lines) {
+        List<PayrollProjection.Line> projected = lines.stream()
+                .map(l -> new PayrollProjection.Line(l.employeeId(), l.regularMinutes(), l.overtimeMinutes(), Minutes.ZERO))
+                .toList();
+        return new PayrollProjection(id, projected);
     }
 
     private AuditEvent audit(TenantId tenantId, UserId actorId, String action, String entityType, UUID entityId,
@@ -139,10 +154,10 @@ public class PayrollService {
                 UUID.randomUUID().toString(), Instant.now());
     }
 
-    private static String sha256(byte[] content) {
+    private static String sha256(byte[] data) {
         try {
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            return HexFormat.of().formatHex(digest.digest(content));
+            return HexFormat.of().formatHex(digest.digest(data));
         } catch (NoSuchAlgorithmException e) {
             throw new IllegalStateException("SHA-256 not available", e);
         }

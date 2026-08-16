@@ -2,6 +2,7 @@ package com.workforceos.payroll.adapter.inbound.web;
 
 import com.workforceos.payroll.domain.PayPeriod;
 import com.workforceos.payroll.domain.PayrollExport;
+import com.workforceos.payroll.domain.PayrollReadiness;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
@@ -14,10 +15,9 @@ public final class PayrollDtos {
     private PayrollDtos() {
     }
 
-    public record OpenPeriodRequest(@NotNull LocalDate startDate, @NotNull LocalDate endDate) {
-    }
-
-    public record ReopenRequest(@NotBlank String reason) {
+    public record OpenPayPeriodRequest(
+            @NotNull LocalDate startDate,
+            @NotNull LocalDate endDate) {
     }
 
     public record PayPeriodResponse(
@@ -41,27 +41,42 @@ public final class PayrollDtos {
         }
     }
 
-    public record PayrollExportResponse(
-            UUID id,
-            UUID periodId,
-            int version,
-            String checksum,
-            String format,
-            UUID generatedBy,
-            String generatedAt) {
+    public record ReopenRequest(@NotBlank String reason) {
+    }
 
-        public static PayrollExportResponse from(PayrollExport export) {
-            return new PayrollExportResponse(
-                    export.id().value(),
-                    export.periodId().value(),
-                    export.version(),
-                    export.checksum(),
-                    export.format(),
-                    export.generatedBy().value(),
-                    export.generatedAt().toString());
+    public record ReadinessResponse(
+            int totalEmployees,
+            int unresolvedCount,
+            long totalRegularMinutes,
+            long totalOvertimeMinutes,
+            double finalizedPercent) {
+
+        public static ReadinessResponse from(PayrollReadiness readiness) {
+            return new ReadinessResponse(
+                    readiness.totalEmployees(),
+                    readiness.unresolvedCount(),
+                    readiness.totalRegular().value(),
+                    readiness.totalOvertime().value(),
+                    readiness.finalizedPercent());
         }
     }
 
-    public record PayrollExportContentResponse(PayrollExportResponse export, String content) {
+    public record ExportResponse(
+            UUID id,
+            int version,
+            String checksum,
+            String format,
+            String generatedAt,
+            UUID generatedBy) {
+
+        public static ExportResponse from(PayrollExport export) {
+            return new ExportResponse(
+                    export.id().value(),
+                    export.version(),
+                    export.checksum(),
+                    export.format(),
+                    export.generatedAt().toString(),
+                    export.generatedBy().value());
+        }
     }
 }

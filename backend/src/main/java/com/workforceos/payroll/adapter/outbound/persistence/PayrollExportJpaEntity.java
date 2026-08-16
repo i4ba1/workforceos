@@ -8,7 +8,7 @@ import jakarta.persistence.Table;
 import java.time.Instant;
 import java.util.UUID;
 
-/** JPA mapping of a payroll export artifact. */
+/** JPA mapping of a reproducible payroll export. */
 @Entity
 @Table(name = "payroll_export")
 public class PayrollExportJpaEntity {
@@ -41,8 +41,8 @@ public class PayrollExportJpaEntity {
     protected PayrollExportJpaEntity() {
     }
 
-    public PayrollExportJpaEntity(UUID id, UUID tenantId, UUID periodId, int version, String checksum, String format,
-                                  UUID generatedBy, Instant generatedAt) {
+    public PayrollExportJpaEntity(UUID id, UUID tenantId, UUID periodId, int version, String checksum,
+                                  String format, UUID generatedBy, Instant generatedAt) {
         this.id = id;
         this.tenantId = tenantId;
         this.periodId = periodId;
