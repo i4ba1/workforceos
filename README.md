@@ -298,6 +298,7 @@ deterministic payroll exports. See `docs/testing/test-catalogue.md`.
 | Security checklist | `docs/security/security-checklist.md` |
 | Test catalogue | `docs/testing/test-catalogue.md` |
 | Load & performance | `docs/performance/load-test.md` |
+| Deployment | `docs/deployment.md` |
 
 ---
 

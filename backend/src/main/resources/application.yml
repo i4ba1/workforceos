@@ -56,5 +56,7 @@ workforceos:
   security:
     issuer-uri: ${OIDC_ISSUER_URI:}
     local-dev: ${WORKFORCEOS_LOCAL_DEV:true}
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173}
   export:
     storage-root: ${EXPORT_STORAGE_ROOT:./var/exports}
