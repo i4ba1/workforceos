@@ -93,10 +93,23 @@ workforceos/
 
 ## Prerequisites
 
-- **JDK 25** (`JAVA_HOME` should point at it). Verify: `java -version`.
+- **JDK 25** — `JAVA_HOME` must point at it. Verify **both**:
+  - `java -version` → `openjdk 25 ...`
+  - `./mvnw.cmd --version` (backend dir) → `Java version: 25` (this is what Maven actually uses)
 - **Node.js 22+** and npm.
 - **PostgreSQL 17** running locally (see credentials below).
 - Redis — *optional*; the demo runs without it.
+
+> **Troubleshooting** — if you see `error: release version 25 not supported` while
+> `java -version` reports 25, your `JAVA_HOME` points at an older JDK. Maven uses
+> `JAVA_HOME`, not your `PATH`. Fix it once:
+>
+> ```powershell
+> # Windows (PowerShell) — then open a NEW terminal
+> setx JAVA_HOME "C:\Program Files\Java\jdk-25"
+> ```
+>
+> Verify with `./mvnw.cmd --version` (should print `Java version: 25`).
 
 ---
 

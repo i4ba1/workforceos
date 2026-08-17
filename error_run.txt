@@ -1,0 +1,41 @@
+PS C:\Users\user\Documents\workforceos\backend> .\mvnw.cmd spring-boot:run
+[INFO] Scanning for projects...
+[INFO]
+[INFO] --------------------< com.workforceos:workforceos >---------------------
+[INFO] Building WorkforceOS 0.1.0-SNAPSHOT
+[INFO]   from pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO]
+[INFO] >>> spring-boot:4.1.0:run (default-cli) > test-compile @ workforceos >>>
+[INFO]
+[INFO] --- resources:3.5.0:resources (default-resources) @ workforceos ---
+[INFO] Copying 1 resource from src\main\resources to target\classes
+[INFO] Copying 8 resources from src\main\resources to target\classes
+[INFO]
+[INFO] --- compiler:3.15.0:compile (default-compile) @ workforceos ---
+[INFO] Recompiling the module because of changed source code.
+[INFO] Compiling 223 source files with javac [debug parameters release 25] to target\classes
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD FAILURE
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  8.680 s
+[INFO] Finished at: 2026-08-17T16:36:36+07:00
+[INFO] ------------------------------------------------------------------------
+[ERROR] Failed to execute goal org.apache.maven.plugins:maven-compiler-plugin:3.15.0:compile (default-compile) on project workforceos: Fatal error compiling: error: release version 25 not supported -> [Help 1]
+[ERROR]
+[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.
+[ERROR] Re-run Maven using the -X switch to enable full debug logging.
+[ERROR]
+[ERROR] For more information about the errors and possible solutions, please read the following articles:
+[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoExecutionException
+PS C:\Users\user\Documents\workforceos\backend> java --version
+java 25 2025-09-16 LTS
+Java(TM) SE Runtime Environment (build 25+37-LTS-3491)
+Java HotSpot(TM) 64-Bit Server VM (build 25+37-LTS-3491, mixed mode, sharing)
+PS C:\Users\user\Documents\workforceos\backend> .\mvnw.cmd --version
+Apache Maven 3.9.11 (3e54c93a704957b63ee3494413a2b544fd3d825b)
+Maven home: C:\Users\user\.m2\wrapper\dists\apache-maven-3.9.11\d6d3cbd4012d4c1d840e93277aca316c
+Java version: 21.0.4, vendor: Oracle Corporation, runtime: C:\Program Files\Java\jdk-21
+Default locale: en_ID, platform encoding: UTF-8
+OS name: "windows 11", version: "10.0", arch: "amd64", family: "windows"
+PS C:\Users\user\Documents\workforceos\backend>
